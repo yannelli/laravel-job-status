@@ -7,12 +7,12 @@ namespace Yannelli\TrackJobStatus;
 use Closure;
 use Illuminate\Contracts\Container\Container;
 
-class Dispatcher extends \Illuminate\Bus\Dispatcher
+readonly class Dispatcher extends \Illuminate\Bus\Dispatcher
 {
     public function __construct(
-        Container $container,
-        Closure $queueResolver,
-        private readonly JobStatusUpdater $updater
+        Container                $container,
+        Closure                  $queueResolver,
+        private JobStatusUpdater $updater
     ) {
         parent::__construct($container, $queueResolver);
     }

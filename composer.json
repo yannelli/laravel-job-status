@@ -1,5 +1,5 @@
 {
-  "name": "imtigger/laravel-job-status",
+  "name": "yannelli/laravel-job-status",
   "description": "Laravel Job Status",
   "license": "MIT",
   "authors": [
@@ -43,7 +43,7 @@
   "autoload-dev": {
     "psr-4": {
       "Yannelli\\TrackJobStatus\\Tests\\": "tests",
-      "Yannelli\\TrackJobStatus\\Tests\\Data\\": "tests/_data"
+      "Yannelli\\TrackJobStatus\\Tests\\Data\\": "tests/Data"
     }
   },
   "scripts": {
