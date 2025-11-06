@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Imtigger\LaravelJobStatus\Tests\Data;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Connection;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Testing\Concerns\InteractsWithDatabase;
 use Illuminate\Foundation\Testing\Constraints\HasInDatabase;
@@ -14,22 +17,18 @@ use Imtigger\LaravelJobStatus\TrackableJob;
 
 class TestJobWithDatabase implements ShouldQueue, TrackableJob
 {
+    use Dispatchable;
+    use InteractsWithDatabase;
     use InteractsWithQueue;
     use Queueable;
-    use Dispatchable;
     use Trackable;
-    use InteractsWithDatabase;
 
-    protected $data;
-
-    public function __construct(array $data)
+    public function __construct(protected array $data)
     {
-        $this->data = $data;
-
         $this->prepareStatus();
     }
 
-    public function handle()
+    public function handle(): void
     {
         TestCase::assertThat(
             'job_statuses',
@@ -39,7 +38,7 @@ class TestJobWithDatabase implements ShouldQueue, TrackableJob
         );
     }
 
-    protected function getConnection()
+    protected function getConnection(): Connection
     {
         $database = app('db');
 

@@ -1,14 +1,14 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus\Tests\Feature;
+namespace Yannelli\TrackJobStatus\Tests\Feature;
 
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\Facades\Artisan;
-use Imtigger\LaravelJobStatus\EventManagers\DefaultEventManager;
-use Imtigger\LaravelJobStatus\EventManagers\LegacyEventManager;
-use Imtigger\LaravelJobStatus\JobStatus;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJob;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJobWithException;
+use Yannelli\TrackJobStatus\EventManagers\DefaultEventManager;
+use Yannelli\TrackJobStatus\EventManagers\LegacyEventManager;
+use Yannelli\TrackJobStatus\JobStatus;
+use Yannelli\TrackJobStatus\Tests\Data\TestJob;
+use Yannelli\TrackJobStatus\Tests\Data\TestJobWithException;
 
 class EventManagerTest extends TestCase
 {

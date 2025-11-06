@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Imtigger\LaravelJobStatus\Tests\Data;
 
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,9 +14,9 @@ use Imtigger\LaravelJobStatus\TrackableJob;
 
 class TestJobWithException implements ShouldQueue, TrackableJob
 {
+    use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
-    use Dispatchable;
     use Trackable;
 
     public function __construct()
@@ -21,8 +24,8 @@ class TestJobWithException implements ShouldQueue, TrackableJob
         $this->prepareStatus();
     }
 
-    public function handle()
+    public function handle(): void
     {
-        throw new \Exception('test-exception');
+        throw new Exception('test-exception');
     }
 }

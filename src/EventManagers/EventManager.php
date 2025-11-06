@@ -1,13 +1,15 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus\EventManagers;
+declare(strict_types=1);
+
+namespace Yannelli\TrackJobStatus\EventManagers;
 
 use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
-use Imtigger\LaravelJobStatus\JobStatus;
-use Imtigger\LaravelJobStatus\JobStatusUpdater;
+use Yannelli\TrackJobStatus\JobStatus;
+use Yannelli\TrackJobStatus\JobStatusUpdater;
 
 abstract class EventManager
 {
@@ -19,28 +21,23 @@ abstract class EventManager
 
     abstract public function exceptionOccurred(JobExceptionOccurred $event): void;
 
-    private $updater;
+    /** @var class-string<JobStatus> */
+    private string $entity;
 
-    private $entity;
-
-    public function __construct(JobStatusUpdater $updater)
+    public function __construct(private readonly JobStatusUpdater $updater)
     {
-        $this->updater = $updater;
         $this->entity = app(config('job-status.model'));
     }
 
-    /**
-     * @return JobStatusUpdater
-     */
-    protected function getUpdater()
+    protected function getUpdater(): JobStatusUpdater
     {
         return $this->updater;
     }
 
     /**
-     * @return JobStatus
+     * @return class-string<JobStatus>
      */
-    protected function getEntity()
+    protected function getEntity(): string
     {
         return $this->entity;
     }

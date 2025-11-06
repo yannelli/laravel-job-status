@@ -1,16 +1,16 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus\Tests\Feature;
+namespace Yannelli\TrackJobStatus\Tests\Feature;
 
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\Facades\Artisan;
-use Imtigger\LaravelJobStatus\JobStatus;
-use Imtigger\LaravelJobStatus\LaravelJobStatusBusServiceProvider;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJob;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJobWithDatabase;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJobWithException;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJobWithFail;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJobWithoutTracking;
+use Yannelli\TrackJobStatus\JobStatus;
+use Yannelli\TrackJobStatus\LaravelJobStatusBusServiceProvider;
+use Yannelli\TrackJobStatus\Tests\Data\TestJob;
+use Yannelli\TrackJobStatus\Tests\Data\TestJobWithDatabase;
+use Yannelli\TrackJobStatus\Tests\Data\TestJobWithException;
+use Yannelli\TrackJobStatus\Tests\Data\TestJobWithFail;
+use Yannelli\TrackJobStatus\Tests\Data\TestJobWithoutTracking;
 
 class TrackableTest extends TestCase
 {

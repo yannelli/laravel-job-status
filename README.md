@@ -23,14 +23,12 @@ Laravel package to add ability to track `Job` progress, status and result dispat
 
 ## Requirements
 
-- PHP >= 7.1
-- Laravel/Lumen >= 5.5
+- PHP ^8.3
+- Laravel ^12.0
 
 ## Installation
 
 [Installation for Laravel](INSTALL.md)
-
-[Installation for Lumen](INSTALL_LUMEN.md)
 
 ### Usage
 
@@ -38,36 +36,34 @@ In your `Job`, use `Trackable` trait and call `$this->prepareStatus()` in constr
 
 ```php
 <?php
+
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Imtigger\LaravelJobStatus\Trackable;
 
 class TrackableJob implements ShouldQueue
 {
-    use InteractsWithQueue, Queueable, SerializesModels, Trackable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, Trackable;
 
-    public function __construct(array $params)
+    public function __construct(private readonly array $params)
     {
         $this->prepareStatus();
-        $this->params = $params; // Optional
         $this->setInput($this->params); // Optional
     }
 
-    /**
-     * Execute the job.
-     *
-     * @return void
-     */
-    public function handle()
+    public function handle(): void
     {
         $max = mt_rand(5, 30);
         $this->setProgressMax($max);
 
-        for ($i = 0; $i <= $max; $i += 1) {
+        for ($i = 0; $i <= $max; $i++) {
             sleep(1); // Some Long Operations
             $this->setProgressNow($i);
         }
@@ -75,7 +71,6 @@ class TrackableJob implements ShouldQueue
         $this->setOutput(['total' => $max, 'other' => 'parameter']);
     }
 }
-
 ```
 
 In your Job dispatcher, call `$job->getJobStatusId()` to get `$jobStatusId`:
@@ -83,14 +78,23 @@ In your Job dispatcher, call `$job->getJobStatusId()` to get `$jobStatusId`:
 ```php
 <?php
 
-class YourController {
-    use DispatchesJobs;
+declare(strict_types=1);
 
-    function go() {
+namespace App\Http\Controllers;
+
+use App\Jobs\TrackableJob;
+use Illuminate\Http\JsonResponse;
+
+class YourController extends Controller
+{
+    public function dispatchJob(): JsonResponse
+    {
         $job = new TrackableJob([]);
-        $this->dispatch($job);
+        dispatch($job);
 
         $jobStatusId = $job->getJobStatusId();
+
+        return response()->json(['job_status_id' => $jobStatusId]);
     }
 }
 ```
@@ -99,6 +103,11 @@ class YourController {
 
 ```php
 <?php
+
+declare(strict_types=1);
+
+use Imtigger\LaravelJobStatus\JobStatus;
+
 $jobStatus = JobStatus::find($jobStatusId);
 ```
 ### Troubleshooting
@@ -129,46 +138,80 @@ Therefore JobStatus updates can be saved instantly even within your application 
 Read setup step 6 for instructions.
 
 
-## Documentations
+## API Reference
+
+### Trackable Trait Methods (Protected)
+
+Call these methods from within your Job class:
 
 ```php
-<?php
-// Job protected methods (Call from your Job)
-$this->prepareStatus();                           // Must be called in constructor before any other methods
-$this->setProgressMax(int $v);                    // Update the max number of progress
-$this->setProgressNow(int $v);                    // Update the current number progress
-$this->setProgressNow(int $v, int $every);        // Update the current number progress, write to database only when $v % $every == 0
-$this->incrementProgress(int $offset)             // Increase current number progress by $offset
-$this->incrementProgress(int $offset, int $every) // Increase current number progress by $offset, write to database only when $v % $every == 0
-$this->setInput(array $v);                        // Store input into database
-$this->setOutput(array $v);                       // Store output into database (Typically the run result)
+$this->prepareStatus(array $data = []): void
+// Must be called in constructor before any other methods
+// Optional $data array can include custom fields
 
-// Job public methods (Call from your Job dispatcher)
-$job->getJobStatusId();                       // Return the primary key of JobStatus (To retrieve status later)
+$this->setProgressMax(int $value): void
+// Set the maximum progress value
 
-// JobStatus object fields
-var_dump($jobStatus->job_id);                 // String (Result varies with driver, see note)
-var_dump($jobStatus->type);                   // String
-var_dump($jobStatus->queue);                  // String
-var_dump($jobStatus->status);                 // String [queued|executing|finished|retrying|failed]
-var_dump($jobStatus->attempts);               // Integer
-var_dump($jobStatus->progress_now);           // Integer
-var_dump($jobStatus->progress_max);           // Integer
-var_dump($jobStatus->input);                  // Array
-var_dump($jobStatus->output);                 // Array, ['message' => $exception->getMessage()] if job failed
-var_dump($jobStatus->created_at);             // Carbon object
-var_dump($jobStatus->updated_at);             // Carbon object
-var_dump($jobStatus->started_at);             // Carbon object
-var_dump($jobStatus->finished_at);            // Carbon object
+$this->setProgressNow(int $value, int $every = 1): void
+// Update current progress
+// $every: write to database only when $value % $every === 0
 
-// JobStatus generated fields
-var_dump($jobStatus->progress_percentage);    // Double [0-100], useful for displaying progress bar
-var_dump($jobStatus->is_ended);               // Boolean, true if status == finished || status == failed
-var_dump($jobStatus->is_executing);           // Boolean, true if status == executing
-var_dump($jobStatus->is_failed);              // Boolean, true if status == failed
-var_dump($jobStatus->is_finished);            // Boolean, true if status == finished
-var_dump($jobStatus->is_queued);              // Boolean, true if status == queued
-var_dump($jobStatus->is_retrying);            // Boolean, true if status == retrying
+$this->incrementProgress(int $offset = 1, int $every = 1): void
+// Increase current progress by $offset
+// $every: write to database only when value % $every === 0
+
+$this->setInput(array $value): void
+// Store input data into database
+
+$this->setOutput(array $value): void
+// Store output/result data into database
+```
+
+### Public Methods
+
+```php
+$job->getJobStatusId(): int|string|null
+// Returns the JobStatus primary key (use to retrieve status later)
+```
+
+### JobStatus Model Properties
+
+```php
+$jobStatus->id                    // int: Primary key
+$jobStatus->job_id                // ?string: Queue job ID (varies by driver, see note below)
+$jobStatus->type                  // string: Job class name
+$jobStatus->queue                 // ?string: Queue name
+$jobStatus->status                // JobStatusEnum: Current status enum
+$jobStatus->attempts              // int: Number of attempts
+$jobStatus->progress_now          // int: Current progress value
+$jobStatus->progress_max          // int: Maximum progress value
+$jobStatus->input                 // ?array: Input data
+$jobStatus->output                // ?array: Output data (includes exception message if failed)
+$jobStatus->created_at            // ?\Illuminate\Support\Carbon: Creation timestamp
+$jobStatus->updated_at            // ?\Illuminate\Support\Carbon: Last update timestamp
+$jobStatus->started_at            // ?\Illuminate\Support\Carbon: Start timestamp
+$jobStatus->finished_at           // ?\Illuminate\Support\Carbon: Completion timestamp
+
+// Computed Properties
+$jobStatus->progress_percentage   // float: Progress percentage [0-100]
+$jobStatus->is_ended              // bool: True if finished or failed
+$jobStatus->is_executing          // bool: True if currently executing
+$jobStatus->is_failed             // bool: True if failed
+$jobStatus->is_finished           // bool: True if finished successfully
+$jobStatus->is_queued             // bool: True if queued
+$jobStatus->is_retrying           // bool: True if retrying after failure
+```
+
+### JobStatusEnum Values
+
+```php
+use Imtigger\LaravelJobStatus\Enums\JobStatusEnum;
+
+JobStatusEnum::QUEUED      // 'queued'
+JobStatusEnum::EXECUTING   // 'executing'
+JobStatusEnum::FINISHED    // 'finished'
+JobStatusEnum::FAILED      // 'failed'
+JobStatusEnum::RETRYING    // 'retrying'
 ```
 
 # Note 

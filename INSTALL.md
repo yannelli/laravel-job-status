@@ -1,64 +1,110 @@
 # Installation - Laravel
 
-This plugin can only be installed from [Composer](https://getcomposer.org/).
+## Requirements
 
-Run the following command:
-```
+- PHP ^8.3
+- Laravel ^12.0
+
+## Installation Steps
+
+### 1. Install via Composer
+
+```bash
 composer require imtigger/laravel-job-status
 ```
 
-#### 1. Add Service Provider (Laravel < 5.5)
+The package will be automatically discovered by Laravel.
 
-Add the following to your `config/app.php`:
-
-```php
-'providers' => [
-    ...
-    Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider::class,
-]
-```
-
-#### 2. Publish migration and config (optional)
-
-```bash
-php artisan vendor:publish --provider="Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider"
-```
-
-#### 3. Migrate Database
+### 2. Run Migrations
 
 ```bash
 php artisan migrate
 ```
 
-#### 4. Use a custom JobStatus model (optional)
+This will create the `job_statuses` table in your database.
 
-To use your own JobStatus model you can change the model in `config/job-status.php`
+### 3. Publish Configuration (Optional)
+
+If you need to customize the configuration:
+
+```bash
+php artisan vendor:publish --provider="Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider" --tag="config"
+```
+
+This will create `config/job-status.php`.
+
+### 4. Publish Migrations (Optional)
+
+If you need to customize the migration:
+
+```bash
+php artisan vendor:publish --provider="Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider" --tag="migrations"
+```
+
+## Advanced Configuration
+
+### Custom JobStatus Model
+
+To use your own JobStatus model, update `config/job-status.php`:
 
 ```php
 return [
-    'model' => App\JobStatus::class,
+    'model' => App\Models\JobStatus::class,
+    // ...
 ];
-
 ```
 
-#### 5. Improve job_id capture (optional)
+### Immediate Job ID Capture
 
-The first Laravel event that can be captured to insert the job_id into the JobStatus model is the `Queue::before` event. This means that the JobStatus won't have a job_id until it is being processed for the first time.
+By default, the job_id is captured when the job starts processing. To capture it immediately upon dispatch, add the Bus Service Provider to your `config/app.php`:
 
-If you would like the job_id to be stored immediately you can add the `LaravelJobStatusServiceProvider` to your `config/app.php`, which tells laravel to use our `Dispatcher`.
 ```php
 'providers' => [
-    ...
-    \Imtigger\LaravelJobStatus\LaravelJobStatusBusServiceProvider::class,
-]
+    // ...
+    Imtigger\LaravelJobStatus\LaravelJobStatusBusServiceProvider::class,
+],
 ```
 
-#### 6. Setup dedicated database connection (optional)
+### Dedicated Database Connection
 
-Laravel support only one transaction per database connection.
+Laravel supports only one transaction per database connection. JobStatus updates within a transaction are invisible to other connections (e.g., progress monitoring pages) until the transaction commits.
 
-All changes made by JobStatus are also within transaction and therefore invisible to other connnections (e.g. progress page)
+To make JobStatus updates visible immediately:
 
-If your job will update progress within transaction, copy your connection in `config/database.php` under another name like `'mysql-job-status'` with same config.
+1. Add a new connection in `config/database.php`:
 
-Then set your connection to `'database_connection' => 'mysql-job-status'` in `config/job-status.php`
+```php
+'connections' => [
+    // ... existing connections
+    
+    'mysql-job-status' => [
+        'driver' => 'mysql',
+        'host' => env('DB_HOST', '127.0.0.1'),
+        'port' => env('DB_PORT', '3306'),
+        'database' => env('DB_DATABASE', 'forge'),
+        'username' => env('DB_USERNAME', 'forge'),
+        'password' => env('DB_PASSWORD', ''),
+        // ... other mysql config
+    ],
+],
+```
+
+2. Update `config/job-status.php`:
+
+```php
+return [
+    'database_connection' => 'mysql-job-status',
+    // ...
+];
+```
+
+### Custom Event Manager
+
+To use a different event manager (e.g., LegacyEventManager), update `config/job-status.php`:
+
+```php
+return [
+    'event_manager' => Imtigger\LaravelJobStatus\EventManagers\LegacyEventManager::class,
+    // ...
+];
+```

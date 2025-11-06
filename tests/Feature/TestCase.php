@@ -1,10 +1,11 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus\Tests\Feature;
+declare(strict_types=1);
+
+namespace Yannelli\TrackJobStatus\Tests\Feature;
 
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Imtigger\LaravelJobStatus\LaravelJobStatusServiceProvider;
-use Orchestra\Database\ConsoleServiceProvider;
+use Yannelli\TrackJobStatus\LaravelJobStatusServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
 class TestCase extends OrchestraTestCase
@@ -15,18 +16,14 @@ class TestCase extends OrchestraTestCase
     {
         parent::setUp();
 
-        $this->loadMigrationsFrom(realpath(__DIR__ . '/../../database/migrations'));
-        $this->loadMigrationsFrom(realpath(__DIR__ . '/../database/migrations'));
+        $this->loadMigrationsFrom(realpath(__DIR__.'/../../database/migrations'));
+        $this->loadMigrationsFrom(realpath(__DIR__.'/../database/migrations'));
     }
 
-    /**
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
-     */
-    protected function getPackageProviders($app)
+    protected function getPackageProviders($app): array
     {
         return [
             LaravelJobStatusServiceProvider::class,
-            ConsoleServiceProvider::class,
         ];
     }
 }

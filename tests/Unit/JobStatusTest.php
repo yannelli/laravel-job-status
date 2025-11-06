@@ -1,8 +1,8 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus\Tests\Unit;
+namespace Yannelli\TrackJobStatus\Tests\Unit;
 
-use Imtigger\LaravelJobStatus\JobStatus;
+use Yannelli\TrackJobStatus\JobStatus;
 use Orchestra\Testbench\TestCase;
 
 class JobStatusTest extends TestCase

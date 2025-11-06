@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Imtigger\LaravelJobStatus\Tests\Data;
 
 use Illuminate\Bus\Queueable;
@@ -11,9 +13,9 @@ use Imtigger\LaravelJobStatus\TrackableJob;
 
 class TestJobWithoutTracking implements ShouldQueue, TrackableJob
 {
+    use Dispatchable;
     use InteractsWithQueue;
     use Queueable;
-    use Dispatchable;
     use Trackable;
 
     public function __construct()
@@ -22,7 +24,7 @@ class TestJobWithoutTracking implements ShouldQueue, TrackableJob
         $this->prepareStatus();
     }
 
-    public function handle()
+    public function handle(): void
     {
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus\Tests\Feature;
+namespace Yannelli\TrackJobStatus\Tests\Feature;
 
 use Illuminate\Contracts\Bus\Dispatcher;
-use Imtigger\LaravelJobStatus\JobStatusUpdater;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJob;
+use Yannelli\TrackJobStatus\JobStatusUpdater;
+use Yannelli\TrackJobStatus\Tests\Data\TestJob;
 
 class JobStatusUpdaterTest extends TestCase
 {

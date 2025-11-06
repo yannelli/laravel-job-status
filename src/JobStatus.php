@@ -1,109 +1,123 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus;
+declare(strict_types=1);
 
+namespace Yannelli\TrackJobStatus;
+
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Yannelli\TrackJobStatus\Enums\JobStatusEnum;
 
 /**
- * Imtigger\LaravelJobStatus.
- *
- * @property int    $id
- * @property string $job_id
+ * @property int $id
+ * @property string|null $job_id
  * @property string $type
- * @property string $queue
- * @property int    $attempts
- * @property int    $progress_now
- * @property int    $progress_max
- * @property string $status
- * @property string $input
- * @property string $output
- * @property string $created_at
- * @property string $started_at
- * @property string $finished_at
- * @property mixed  $is_ended
- * @property mixed  $is_executing
- * @property mixed  $is_failed
- * @property mixed  $is_finished
- * @property mixed  $is_queued
- * @property mixed  $is_retrying
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereAttempts($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereCreatedAt($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereFinishedAt($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereId($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereInput($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereJobId($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereOutput($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereProgressMax($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereProgressNow($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereQueue($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereStartedAt($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereStatus($value)
- * @method   static \Illuminate\Database\Query\Builder|\Imtigger\LaravelJobStatus\JobStatus whereType($value)
- * @mixin \Eloquent
+ * @property string|null $queue
+ * @property int $attempts
+ * @property int $progress_now
+ * @property int $progress_max
+ * @property JobStatusEnum $status
+ * @property array|null $input
+ * @property array|null $output
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property \Illuminate\Support\Carbon|null $started_at
+ * @property \Illuminate\Support\Carbon|null $finished_at
+ * @property float $progress_percentage
+ * @property bool $is_ended
+ * @property bool $is_executing
+ * @property bool $is_failed
+ * @property bool $is_finished
+ * @property bool $is_queued
+ * @property bool $is_retrying
  */
 class JobStatus extends Model
 {
-    const STATUS_QUEUED = 'queued';
-    const STATUS_EXECUTING = 'executing';
-    const STATUS_FINISHED = 'finished';
-    const STATUS_FAILED = 'failed';
-    const STATUS_RETRYING = 'retrying';
+    protected string $table = 'job_statuses';
 
-    protected $table = "job_statuses";
-
-    public $dates = ['started_at', 'finished_at', 'created_at', 'updated_at'];
-
-    protected $guarded = [];
-
-    protected $casts = [
-        'input' => 'array',
-        'output' => 'array',
+    protected array $fillable = [
+        'job_id',
+        'type',
+        'queue',
+        'attempts',
+        'progress_now',
+        'progress_max',
+        'status',
+        'input',
+        'output',
+        'started_at',
+        'finished_at',
     ];
 
-    /* Accessor */
-    public function getProgressPercentageAttribute()
-    {
-        return $this->progress_max !== 0 ? round(100 * $this->progress_now / $this->progress_max) : 0;
-    }
-
-    public function getIsEndedAttribute()
-    {
-        return \in_array($this->status, [self::STATUS_FAILED, self::STATUS_FINISHED], true);
-    }
-
-    public function getIsFinishedAttribute()
-    {
-        return $this->status === self::STATUS_FINISHED;
-    }
-
-    public function getIsFailedAttribute()
-    {
-        return $this->status === self::STATUS_FAILED;
-    }
-
-    public function getIsExecutingAttribute()
-    {
-        return $this->status === self::STATUS_EXECUTING;
-    }
-
-    public function getIsQueuedAttribute()
-    {
-        return $this->status === self::STATUS_QUEUED;
-    }
-
-    public function getIsRetryingAttribute()
-    {
-        return $this->status === self::STATUS_RETRYING;
-    }
-
-    public static function getAllowedStatuses()
+    protected function casts(): array
     {
         return [
-            self::STATUS_QUEUED,
-            self::STATUS_EXECUTING,
-            self::STATUS_FINISHED,
-            self::STATUS_FAILED,
-            self::STATUS_RETRYING,
+            'input' => 'array',
+            'output' => 'array',
+            'status' => JobStatusEnum::class,
+            'started_at' => 'datetime',
+            'finished_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'attempts' => 'integer',
+            'progress_now' => 'integer',
+            'progress_max' => 'integer',
         ];
+    }
+
+    protected function progressPercentage(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): float => $this->progress_max !== 0
+                ? round(100 * $this->progress_now / $this->progress_max, 2)
+                : 0,
+        );
+    }
+
+    protected function hasEnded(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->status->hasEnded(),
+        );
+    }
+
+    protected function isFinished(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->status->isFinished(),
+        );
+    }
+
+    protected function isFailed(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->status->isFailed(),
+        );
+    }
+
+    protected function isExecuting(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->status->isExecuting(),
+        );
+    }
+
+    protected function isQueued(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->status->isQueued(),
+        );
+    }
+
+    protected function isRetrying(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): bool => $this->status->isRetrying(),
+        );
+    }
+
+    public static function getAllowedStatuses(): array
+    {
+        return JobStatusEnum::values();
     }
 }

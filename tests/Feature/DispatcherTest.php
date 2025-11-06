@@ -1,12 +1,12 @@
 <?php
 
-namespace Imtigger\LaravelJobStatus\Tests\Feature;
+namespace Yannelli\TrackJobStatus\Tests\Feature;
 
 use Illuminate\Bus\Dispatcher;
 use Illuminate\Support\Facades\Artisan;
-use Imtigger\LaravelJobStatus\LaravelJobStatusBusServiceProvider;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJob;
-use Imtigger\LaravelJobStatus\Tests\Data\TestJobWithDatabase;
+use Yannelli\TrackJobStatus\LaravelJobStatusBusServiceProvider;
+use Yannelli\TrackJobStatus\Tests\Data\TestJob;
+use Yannelli\TrackJobStatus\Tests\Data\TestJobWithDatabase;
 
 class DispatcherTest extends TestCase
 {
@@ -81,6 +81,6 @@ class DispatcherTest extends TestCase
 
     public function testSetup()
     {
-        $this->assertInstanceOf(\Imtigger\LaravelJobStatus\Dispatcher::class, app(\Illuminate\Contracts\Bus\Dispatcher::class));
+        $this->assertInstanceOf(\Yannelli\TrackJobStatus\Dispatcher::class, app(\Illuminate\Contracts\Bus\Dispatcher::class));
     }
 }
