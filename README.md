@@ -161,28 +161,64 @@ public function handle(): void
 
 #### Unique Job IDs
 
-If your job implements Laravel's `uniqueId()` method, the unique ID will automatically be captured and stored:
+If your job implements Laravel's `uniqueId()` method, the unique ID will automatically be captured and stored. This allows you to track multiple executions of the same logical operation:
 
 ```php
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 
-class TrackableJob implements ShouldQueue, ShouldBeUnique
+class ProcessUserReport implements ShouldQueue, ShouldBeUnique
 {
     use Trackable;
 
     public function uniqueId(): string
     {
-        return 'import-' . $this->userId;
+        return 'process-user-' . $this->userId;
     }
 
     // Rest of your job...
 }
 ```
 
-You can then find jobs by their unique ID:
+**Important**: The `unique_id` is **NOT** unique in the database - it allows multiple executions to be tracked historically. This means you can:
+- Retry failed jobs for the same entity
+- Reprocess data after corrections
+- Run scheduled recurring jobs for the same entity
+- Track the complete history of all executions
+
+**Finding Jobs by Unique ID:**
 
 ```php
-$jobStatus = JobStatus::where('unique_id', 'import-123')->first();
+// Get the most recent execution
+$latestJob = JobStatus::findLatestByUniqueId('process-user-123');
+
+// Get all historical executions (ordered by most recent first)
+$allExecutions = JobStatus::findAllByUniqueId('process-user-123');
+
+// Check if currently running
+if (JobStatus::isRunning('process-user-123')) {
+    echo "Job is currently processing";
+}
+
+// Old way still works (gets first match, order not guaranteed)
+$jobStatus = JobStatus::where('unique_id', 'process-user-123')->first();
+```
+
+**Example: Viewing Execution History**
+
+```php
+$executions = JobStatus::findAllByUniqueId('import-user-456');
+
+foreach ($executions as $execution) {
+    echo "{$execution->created_at}: {$execution->status->value}";
+    if ($execution->is_failed) {
+        echo " - Failed: {$execution->output['exception'] ?? 'Unknown error'}";
+    }
+}
+
+// Output:
+// 2025-11-06 10:30:00: finished
+// 2025-11-05 14:20:00: failed - Failed: Database connection timeout
+// 2025-11-05 09:15:00: finished
 ```
 
 #### Job Status History
@@ -422,7 +458,7 @@ $job->getJobStatusId(): int|string|null
 ```php
 $jobStatus->id                    // int: Primary key
 $jobStatus->job_id                // ?string: Queue job ID (varies by driver, see note below)
-$jobStatus->unique_id             // ?string: Unique job ID from uniqueId() method
+$jobStatus->unique_id             // ?string: Logical identifier (NOT unique in DB - allows reprocessing)
 $jobStatus->batch_id              // ?string: Batch ID if part of a batch
 $jobStatus->chain_id              // ?string: Chain ID if part of a chain
 $jobStatus->type                  // string: Job class name

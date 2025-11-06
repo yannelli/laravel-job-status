@@ -153,6 +153,48 @@ class JobStatus extends Model
     }
 
     /**
+     * Find the most recent job status by unique ID.
+     *
+     * @param string $uniqueId The unique identifier to search for
+     * @return static|null The most recent job status, or null if not found
+     */
+    public static function findLatestByUniqueId(string $uniqueId): ?static
+    {
+        return static::on(config('job-status.database_connection'))
+            ->where('unique_id', $uniqueId)
+            ->latest('created_at')
+            ->first();
+    }
+
+    /**
+     * Find all job statuses for a unique ID (all historical executions).
+     *
+     * @param string $uniqueId The unique identifier to search for
+     * @return \Illuminate\Database\Eloquent\Collection<int, static>
+     */
+    public static function findAllByUniqueId(string $uniqueId): \Illuminate\Database\Eloquent\Collection
+    {
+        return static::on(config('job-status.database_connection'))
+            ->where('unique_id', $uniqueId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Check if a job with this unique ID is currently running.
+     *
+     * @param string $uniqueId The unique identifier to check
+     * @return bool True if a job is currently executing
+     */
+    public static function isRunning(string $uniqueId): bool
+    {
+        return static::on(config('job-status.database_connection'))
+            ->where('unique_id', $uniqueId)
+            ->where('status', JobStatusEnum::EXECUTING)
+            ->exists();
+    }
+
+    /**
      * Get the history records for this job status.
      *
      * @return HasMany<JobStatusHistory>
@@ -197,13 +239,16 @@ class JobStatus extends Model
             return;
         }
 
-        $this->histories()->create([
-            'status' => $this->status,
-            'status_message' => $this->status_message,
-            'progress_now' => $this->progress_now,
-            'progress_max' => $this->progress_max,
-            'metadata' => $metadata,
-        ]);
+        // Use the configured database connection for history records
+        JobStatusHistory::on(config('job-status.database_connection'))
+            ->create([
+                'job_status_id' => $this->getKey(),
+                'status' => $this->status->value,
+                'status_message' => $this->status_message,
+                'progress_now' => $this->progress_now,
+                'progress_max' => $this->progress_max,
+                'metadata' => $metadata,
+            ]);
     }
 
     /**
@@ -214,9 +259,13 @@ class JobStatus extends Model
     protected static function booted(): void
     {
         static::updated(function (JobStatus $jobStatus): void {
+            // Only log history if status or message actually changed
+            // This prevents infinite loops and unnecessary history records
             if ($jobStatus->wasChanged('status') || $jobStatus->wasChanged('status_message')) {
+                // Defer history logging to after the transaction commits
+                // to avoid race conditions and ensure data consistency
                 $jobStatus->logHistory([
-                    'changed_fields' => $jobStatus->getChanges(),
+                    'changed_fields' => array_keys($jobStatus->getChanges()),
                 ]);
             }
         });

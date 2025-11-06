@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Imtigger\LaravelJobStatus\Enums\JobStatusEnum;
+use Yannelli\TrackJobStatus\Enums\JobStatusEnum;
 
 return new class extends Migration
 {
@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('job_id')->index()->nullable();
             $table->string('unique_id')->index()->nullable();
-            $table->string('batch_id')->index()->nullable();
-            $table->string('chain_id')->index()->nullable();
+            $table->string('batch_id')->nullable();
+            $table->string('chain_id')->nullable();
             $table->string('type')->index();
             $table->string('queue')->index()->nullable();
             $table->unsignedInteger('attempts')->default(0);
@@ -31,6 +31,11 @@ return new class extends Migration
             $table->timestamps();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+
+            $table->index(['batch_id', 'current_step'], 'idx_batch_step');
+            $table->index(['chain_id', 'current_step'], 'idx_chain_step');
+            $table->index(['status', 'created_at'], 'idx_status_created');
+            $table->index(['unique_id', 'created_at'], 'idx_unique_created');
         });
     }
 

@@ -52,6 +52,11 @@ trait Trackable
      */
     protected function setProgressNow(int $value, int $every = 1): void
     {
+        // Guard against division by zero
+        if ($every <= 0) {
+            $every = 1;
+        }
+
         if ($value % $every === 0 || $value === $this->progressMax) {
             $this->update(['progress_now' => $value]);
         }
@@ -139,6 +144,11 @@ trait Trackable
      */
     protected function update(array $data): void
     {
+        // Guard against updates when tracking is disabled
+        if (!$this->shouldTrack || $this->statusId === null) {
+            return;
+        }
+
         $updater = app(JobStatusUpdater::class);
         $updater->update($this, $data);
     }
@@ -161,9 +171,13 @@ trait Trackable
 
         // Capture unique_id from job's uniqueId() method if it exists
         if (method_exists($this, 'uniqueId')) {
-            $uniqueId = $this->uniqueId();
-            if ($uniqueId !== null && !isset($data['unique_id'])) {
-                $data['unique_id'] = $uniqueId;
+            try {
+                $uniqueId = $this->uniqueId();
+                if ($uniqueId !== null && !isset($data['unique_id'])) {
+                    $data['unique_id'] = $uniqueId;
+                }
+            } catch (\Throwable $e) {
+                // uniqueId() may throw - gracefully handle
             }
         }
 
@@ -174,19 +188,27 @@ trait Trackable
                 if ($batch !== null) {
                     $data['batch_id'] = $batch->id;
                     $data['total_jobs'] = $batch->totalJobs;
+                    // Note: processedJobs() may have race conditions in concurrent processing
+                    // This is a best-effort counter and may not be perfectly sequential
                     $data['current_step'] = $batch->processedJobs() + 1;
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
                 // Batch not available yet, skip
             }
         }
 
         $data = array_merge(['type' => $this->getDisplayName()], $data);
 
-        /** @var JobStatus $status */
-        $status = $entityClass::query()->create($data);
+        try {
+            /** @var JobStatus $status */
+            $status = $entityClass::on(config('job-status.database_connection'))
+                ->create($data);
 
-        $this->statusId = $status->getKey();
+            $this->statusId = $status->getKey();
+        } catch (\Throwable $e) {
+            // If status creation fails, disable tracking to prevent further errors
+            $this->shouldTrack = false;
+        }
     }
 
     /**
